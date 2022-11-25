@@ -1,35 +1,49 @@
-version: '3'
+version: "3.7"
 services:
   app:
+    build:
+      args:
+        user: hanun
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
     image: perpus-laravel
-    container_name: app
+    container_name: perpus-laravel-app
     restart: unless-stopped
-    tty: true
-    depends_on:
-      - cache
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
     networks:
-      - app-network
+      - perpus-laravel
 
-  web_server:
-    image: perpus-laravel-web_server
-    container_name: web_server
+  db:
+    image: mysql:8.0
+    container_name: perpus-laravel-db
     restart: unless-stopped
-    tty: true
+    environment:
+      MYSQL_DATABASE: perpus-laravel
+      MYSQL_ROOT_PASSWORD: hanun
+      MYSQL_PASSWORD: hanun
+      MYSQL_USER: hanun
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - perpus-laravel
+
+  nginx:
+    image: nginx:alpine
+    container_name: perpus-laravel-nginx
+    restart: unless-stopped
     ports:
-      - "8010:80"
-    depends_on:
-      - app
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
     networks:
-      - app-network
+      - perpus-laravel
 
-  cache:
-    image: redis:alpine
-    container_name: cache
-    restart: unless-stopped
-    networks:
-      - app-network
-
-#Docker Networks
 networks:
-  app-network:
+  perpus-laravel:
     driver: bridge
